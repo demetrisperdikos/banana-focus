@@ -1,0 +1,153 @@
+/* style.css — Variables, reset, typography, responsive base */
+
+:root {
+  /* Banana-inspired palette */
+  --color-bg: #f7f9e8;          /* Light banana cream */
+  --color-surface: #ffffff;
+  --color-text: #2d3a00;        /* Deep green */
+  --color-text-muted: #5a6b33;
+  
+  /* Focus state: bright banana */
+  --color-focus: #f7e94e;
+  --color-focus-text: #4a5200;
+  
+  /* Break state: brown banana peel */
+  --color-break: #c7a800;
+  --color-break-text: #3d3300;
+  
+  /* Accents */
+  --color-success: #6bb53e;
+  --color-danger: #d45d48;
+  --color-border: #e8e8d0;
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  
+  /* Typography */
+  --font-main: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --font-size-h1: 2rem;
+  --font-size-h2: 1.25rem;
+  --font-size-body: 1rem;
+  --font-size-sm: 0.875rem;
+  --font-size-timer: 5rem;
+  
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 50%;
+  
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: #1a1f00;
+    --color-surface: #2d3a00;
+    --color-text: #f7f9e8;
+    --color-text-muted: #c7d08a;
+    --color-focus: #8a8700;
+    --color-focus-text: #f7e94e;
+    --color-break: #5a5200;
+    --color-break-text: #c7a800;
+    --color-success: #4d8a2d;
+    --color-danger: #b54a3a;
+    --color-border: #3d4a20;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+}
+
+/* Reset */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* App Container */
+.app-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+/* Header */
+.app-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.app-title {
+  font-size: var(--font-size-h1);
+  font-weight: 700;
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+
+/* Mode Badge */
+.mode-badge {
+  display: inline-block;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+.mode-badge.focus {
+  background-color: var(--color-focus);
+  color: var(--color-focus-text);
+}
+
+.mode-badge.break {
+  background-color: var(--color-break);
+  color: var(--color-break-text);
+}
+
+@media (min-width: 768px) {
+  .app-title {
+    font-size: 2.5rem;
+  }
+  
+  :root {
+    --font-size-timer: 6rem;
+  }
+}

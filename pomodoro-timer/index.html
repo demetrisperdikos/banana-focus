@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banana Focus 🍌</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1 class="app-title">Banana Focus 🍌</h1>
+            <div id="mode-badge" class="mode-badge">Focus</div>
+        </header>
+
+        <main class="timer-section">
+            <div class="timer-display">
+                <span id="timer" class="timer-text" role="timer" aria-live="polite">25:00</span>
+            </div>
+            <div class="progress-container">
+                <div id="progress-ring" class="progress-ring"></div>
+            </div>
+            
+            <div class="controls">
+                <button id="start-pause-btn" class="control-btn" aria-label="Start/Pause">
+                    <span id="start-icon">▶</span>
+                    <span id="pause-icon" style="display: none;">⏸</span>
+                </button>
+                <button id="reset-btn" class="control-btn" aria-label="Reset">↺</button>
+                <button id="skip-btn" class="control-btn" aria-label="Skip">⏭</button>
+                <button id="mute-btn" class="control-btn" aria-label="Mute">
+                    <span id="unmute-icon">🔊</span>
+                    <span id="mute-icon" style="display: none;">🔇</span>
+                </button>
+            </div>
+        </main>
+
+        <section class="task-section">
+            <h2 class="section-title">Tasks</h2>
+            <div class="task-input-container">
+                <input 
+                    type="text" 
+                    id="task-input" 
+                    class="task-input" 
+                    placeholder="Add a task..."
+                    aria-label="Add a new task"
+                >
+                <button id="add-task-btn" class="add-btn" aria-label="Add task">+</button>
+            </div>
+            
+            <div class="filter-tabs">
+                <button class="filter-btn active" data-filter="all" aria-label="Show all tasks">All</button>
+                <button class="filter-btn" data-filter="active" aria-label="Show active tasks">Active</button>
+                <button class="filter-btn" data-filter="completed" aria-label="Show completed tasks">Completed</button>
+            </div>
+
+            <ul id="task-list" class="task-list" role="list" aria-label="Task list"></ul>
+            
+            <div class="task-footer">
+                <button id="clear-completed-btn" class="clear-btn" aria-label="Clear completed tasks">Clear Completed</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="js/timer.js"></script>
+    <script src="js/taskManager.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>core logic browser harness</title></head>
+<body>
+<pre id="result">running...</pre>
+<div id="sandbox" style="display:none"></div>
+<script src="../pomodoro-timer/js/timer.js"></script>
+<script src="../pomodoro-timer/js/taskManager.js"></script>
+<script>
+(function () {
+  var lines = [];
+  var fails = 0;
+  function check(name, fn) {
+    try { fn(); lines.push('ok   - ' + name); }
+    catch (e) { fails++; lines.push('FAIL - ' + name + ' :: ' + e.message); }
+  }
+  function assert(cond, msg) { if (!cond) { throw new Error(msg || 'assertion failed'); } }
+  function eq(a, b, msg) { if (a !== b) { throw new Error((msg || '') + ' expected ' + JSON.stringify(b) + ' got ' + JSON.stringify(a)); } }
+
+  // real browser, real DOM, real localStorage, but a fake clock so it is instant + deterministic
+  function makeClock() {
+    var now = 0, timers = [], id = 0;
+    return {
+      now: function () { return now; },
+      setInterval: function (fn) { var t = { id: ++id, fn: fn }; timers.push(t); return t.id; },
+      clearInterval: function (i) { timers = timers.filter(function (t) { return t.id !== i; }); },
+      advance: function (s) { for (var i = 0; i < s; i++) { now += 1000; timers.slice().forEach(function (t) { t.fn(); }); } },
+      live: function () { return timers.length; }
+    };
+  }
+
+  check('modules attach to window', function () {
+    eq(typeof window.PomodoroTimer, 'function');
+    eq(typeof window.TaskManager, 'function');
+  });
+
+  check('timer counts down and writes the real DOM', function () {
+    var clk = makeClock();
+    var el = document.getElementById('sandbox');
+    el.innerHTML = '<span id="t"></span><div id="badge"></div><div id="ring"></div>';
+    var timer = new window.PomodoroTimer({
+      setInterval: clk.setInterval, clearInterval: clk.clearInterval, now: clk.now,
+      onTick: function (s) {
+        document.getElementById('t').textContent = s.display;
+        document.getElementById('badge').textContent = s.mode === 'focus' ? 'Focus' : 'Break';
+        document.getElementById('ring').style.setProperty('--progress', s.progress);
+        document.documentElement.classList.toggle('mode-break', s.mode === 'break');
+      }
+    });
+    timer.start();
+    clk.advance(60);
+    eq(document.getElementById('t').textContent, '24:00', 'timer text in the DOM:');
+    eq(document.getElementById('badge').textContent, 'Focus');
+    assert(document.getElementById('ring').style.getPropertyValue('--progress') !== '', 'progress var set');
+    timer.pause();
+    var frozen = document.getElementById('t').textContent;
+    clk.advance(120);
+    eq(document.getElementById('t').textContent, frozen, 'paused timer must not move:');
+    eq(clk.live(), 0, 'no live interval while paused:');
+    timer.reset();
+    eq(document.getElementById('t').textContent, '25:00');
+    timer.destroy();
+  });
+
+  check('session end switches mode and flags break', function () {
+    var clk = makeClock();
+    var ends = [];
+    var timer = new window.PomodoroTimer({
+      setInterval: clk.setInterval, clearInterval: clk.clearInterval, now: clk.now,
+      onSessionEnd: function (e) { ends.push(e); },
+      onModeChange: function (mode) { document.getElementById('badge').textContent = mode === 'focus' ? 'Focus' : 'Break'; }
+    });
+    timer.start();
+    clk.advance(1500);
+    eq(ends.length, 1);
+    eq(ends[0].mode, 'focus');
+    eq(ends[0].next, 'break');
+    eq(timer.mode, 'break');
+    eq(timer.timeLeft, 300);
+    eq(document.getElementById('badge').textContent, 'Break');
+    eq(clk.live(), 0, 'no interval left running after session end:');
+  });
+
+  check('tasks render into the real DOM and click handlers work', function () {
+    var ul = document.createElement('ul');
+    document.getElementById('sandbox').appendChild(ul);
+    var tm = new window.TaskManager({
+      onChange: function (list) {
+        ul.textContent = '';
+        list.forEach(function (task) {
+          ul.appendChild(window.TaskManager.renderTask(task, {
+            onToggle: function (id) { tm.toggleTask(id); },
+            onDelete: function (id) { tm.deleteTask(id); }
+          }, document));
+        });
+      }
+    });
+    tm.loadTasks();
+    tm.addTask('Write the report');
+    eq(ul.children.length, 1, 'one rendered item:');
+    eq(ul.children[0].children[1].textContent, 'Write the report');
+
+    ul.children[0].children[0].click();   // real checkbox click
+    eq(tm.getCounts().completed, 1, 'checkbox click toggled:');
+    assert(ul.children[0].className.indexOf('completed') !== -1, 'completed class applied');
+
+    ul.children[0].children[2].click();   // real delete click
+    eq(tm.getCounts().total, 0, 'delete click removed it:');
+    eq(ul.children.length, 0, 'DOM emptied:');
+  });
+
+  check('hostile task text is inert in a real browser', function () {
+    var ul = document.createElement('ul');
+    document.getElementById('sandbox').appendChild(ul);
+    window.__XSS = false;
+    var tm = new window.TaskManager({
+      onChange: function (list) {
+        ul.textContent = '';
+        list.forEach(function (t) { ul.appendChild(window.TaskManager.renderTask(t, {}, document)); });
+      }
+    });
+    tm.addTask('<img src=x onerror="window.__XSS=true">');
+    tm.addTask('<script>window.__XSS=true<\/script>');
+    eq(window.__XSS, false, 'no script executed:');
+    eq(ul.querySelectorAll('img').length, 0, 'no img element injected:');
+    eq(ul.querySelectorAll('script').length, 0, 'no script element injected:');
+    eq(ul.children[0].children[1].textContent, '<img src=x onerror="window.__XSS=true">');
+  });
+
+  check('tasks persist in real localStorage', function () {
+    var tm = new window.TaskManager();
+    tm.tasks = [];
+    tm.addTask('persist me');
+    var raw = localStorage.getItem('pomodoro_tasks');
+    assert(raw, 'nothing written to localStorage');
+    var parsed = JSON.parse(raw);
+    eq(parsed.length, 1);
+    eq(parsed[0].text, 'persist me');
+
+    var tm2 = new window.TaskManager();
+    tm2.loadTasks();
+    eq(tm2.getCounts().total >= 1, true, 'reloaded from storage:');
+  });
+
+  check('timer state survives as JSON in localStorage', function () {
+    var clk = makeClock();
+    var t = new window.PomodoroTimer({ setInterval: clk.setInterval, clearInterval: clk.clearInterval, now: clk.now });
+    t.start();
+    clk.advance(90);
+    localStorage.setItem('pomodoro_timer', JSON.stringify(t.serialize()));
+    t.destroy();
+
+    var t2 = new window.PomodoroTimer();
+    t2.restore(JSON.parse(localStorage.getItem('pomodoro_timer')));
+    eq(t2.getState().display, '23:30');
+    eq(t2.isRunning, false, 'restored paused:');
+  });
+
+  check('double start does not double-tick', function () {
+    var clk = makeClock();
+    var t = new window.PomodoroTimer({ setInterval: clk.setInterval, clearInterval: clk.clearInterval, now: clk.now });
+    t.start(); t.start(); t.start();
+    eq(clk.live(), 1);
+    t.destroy();
+  });
+
+  document.getElementById('result').textContent =
+    lines.join('\n') + '\n\n' + (fails === 0 ? 'ALL BROWSER CHECKS PASSED' : fails + ' FAILED');
+})();
+</script>
+</body>
+</html>
